@@ -2,7 +2,8 @@
 #include <g2o/core/base_binary_edge.h>
 #include <g2o/core/block_solver.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/solvers/csparse/linear_solver_csparse.h>
+// #include <g2o/solvers/csparse/linear_solver_csparse.h>
+#include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/core/robust_kernel_impl.h>
 #include <iostream>
 
@@ -118,17 +119,12 @@ void SolveBA(BALProblem &bal_problem);
 
 int main(int argc, char **argv) {
 
-    if (argc != 2) {
-        cout << "usage: bundle_adjustment_g2o bal_data.txt" << endl;
-        return 1;
-    }
-
-    BALProblem bal_problem(argv[1]);
+    BALProblem bal_problem("../problem-49-7776-pre.txt");
     bal_problem.Normalize();
     bal_problem.Perturb(0.1, 0.5, 0.5);
-    bal_problem.WriteToPLYFile("initial.ply");
+    bal_problem.WriteToPLYFile("../initial.ply");
     SolveBA(bal_problem);
-    bal_problem.WriteToPLYFile("final.ply");
+    bal_problem.WriteToPLYFile("../final.ply");
 
     return 0;
 }
@@ -141,7 +137,7 @@ void SolveBA(BALProblem &bal_problem) {
 
     // pose dimension 9, landmark is 3
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<9, 3>> BlockSolverType;
-    typedef g2o::LinearSolverCSparse<BlockSolverType::PoseMatrixType> LinearSolverType;
+    typedef g2o::LinearSolverDense<BlockSolverType::PoseMatrixType> LinearSolverType;
     // use LM
     auto solver = new g2o::OptimizationAlgorithmLevenberg(
         g2o::make_unique<BlockSolverType>(g2o::make_unique<LinearSolverType>()));

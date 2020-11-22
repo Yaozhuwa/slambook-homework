@@ -89,10 +89,6 @@ public:
     virtual void computeError() override {
         // TODO START YOUR CODE HERE
         // compute projection error ...
-
-        // auto v0 = (g2o::VertexSBAPointXYZ *) _vertices[0];
-        // auto v1 = (VertexSophus *) _vertices[1];
-        // Eigen::Vector3d p_nsp = v1->estimate()*v0->estimate();
         const g2o::VertexSBAPointXYZ *vertexPw = static_cast<const g2o::VertexSBAPointXYZ * >(vertex(0));
         const VertexSophus *vertexTcw = static_cast<const VertexSophus * >(vertex(1));
         Eigen::Vector3d p_nsp = vertexTcw->estimate() * vertexPw->estimate();
@@ -101,8 +97,8 @@ public:
         double v = p_nsp[1]*fy+cy;
         if (u-2>=0 && v-2>=0 &&u+1<=targetImg.cols-1 && v+1<=targetImg.rows-1){
             int index=0;
-            for (int dv=-2;dv<=1;dv++){
-                for (int du=-2;du<=1;du++)
+            for (int du=-2;du<=1;du++){
+                for (int dv=-2;dv<=1;dv++)
                 {
                     _error[index] = origColor[index]-GetPixelValue(targetImg, u+du, v+dv);
                     index++;
@@ -177,11 +173,11 @@ int main(int argc, char **argv) {
     }
 
     // build optimization problem
-    typedef g2o::BlockSolver<g2o::BlockSolverTraits<6, 3>> DirectBlock;  // 求解的向量是6＊1的
-
-    std::unique_ptr<DirectBlock::LinearSolverType> linearSolver(new g2o::LinearSolverDense<DirectBlock::PoseMatrixType>());
-    std::unique_ptr<DirectBlock> solver_ptr(new DirectBlock(std::move(linearSolver)));
-    g2o::OptimizationAlgorithmLevenberg *solver = new g2o::OptimizationAlgorithmLevenberg(std::move(solver_ptr)); // L-M
+    // typedef g2o::BlockSolver<g2o::BlockSolverTraits<6, 3>> DirectBlock;  // 求解的向量是6＊1的
+    typedef g2o::BlockSolver<g2o::BlockSolverTraits<6, 3>> BlockSolverType;  // 求解的向量是6＊1的
+    typedef g2o::LinearSolverDense<BlockSolverType::PoseMatrixType> LinearSolverType;
+    auto solver = new g2o::OptimizationAlgorithmLevenberg(
+        g2o::make_unique<BlockSolverType>(g2o::make_unique<LinearSolverType>()));
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(solver);
     optimizer.setVerbose(true);
@@ -216,7 +212,7 @@ int main(int argc, char **argv) {
             edge->setVertex(0, vertex_points[j]);
             edge->setVertex(1, vertex_poses[i]);
             edge->setInformation(Eigen::Matrix<double, 16, 16>::Identity());
-            // edge->setRobustKernel(new g2o::RobustKernelHuber());
+            edge->setRobustKernel(new g2o::RobustKernelHuber());
             optimizer.addEdge(edge);            
         }
     }
